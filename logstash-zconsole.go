@@ -41,6 +41,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain")
 	w.Write([]byte(r.Host))
 	for elem := range queue {
+		fmt.Printf("queue: %s\n",elem)
 		err := json.Unmarshal([]byte(elem), &msg)
 		if err != nil {
 			fmt.Println("error:", err)
