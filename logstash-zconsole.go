@@ -33,7 +33,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	var colors Colorizer
 	var msg map[string]interface{}
 	queue := make(chan string, 100)  //buffer only 100 messages, need to be in config
-	go subscriber_task(queue)
+	go subscriber_task(queue, r)
 	time.Sleep(time.Second) //get some time to socket prepare operations
 
 	colors = make(Colorizer)
@@ -84,7 +84,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 //
 //}
 
-func subscriber_task(queue chan string) {
+func subscriber_task(queue chan string, r *http.Request) {
 	go func() {
 		subscriber, err := zmq.NewSocket(zmq.SUB)
 		if err != nil {
@@ -96,7 +96,7 @@ func subscriber_task(queue chan string) {
 		if logstash_addr == "" {
 			logstash_addr = "tcp://local-logstash:12300"
 		}
-		fmt.Printf("# using %s as logstash endpoint\n", logstash_addr)
+		fmt.Printf("# using %s as logstash endpoint for %s\n", logstash_addr, r.RemoteAddr + r.RequestURI)
 		err1 := subscriber.Connect(logstash_addr)
 		if err1 != nil {
 			fmt.Println("connect error", err1)
@@ -108,11 +108,11 @@ func subscriber_task(queue chan string) {
 			os.Exit(0)
 		}
 
-		poller := zmq.NewPoller()
-		poller.Add(subscriber, zmq.POLLIN)
+		//poller := zmq.NewPoller()
+		//poller.Add(subscriber, zmq.POLLIN)
 		for {
-			sockets, _ := poller.Poll(-1)
-			update, _ := sockets[0].Socket.Recv(0)
+			//sockets, _ := poller.Poll(-1)
+			update, _ := subscriber.Recv(0)
 			if update != "" {
 				queue <- update
 			}
